@@ -1,0 +1,17 @@
+services:
+  # A Docker web service
+  - type: web
+    name: lost-and-found-app
+    env: docker
+    region: singapore # Choose a region closest to your users
+    plan: free # Adjust as needed
+    branch: main # Adjust to match your main branch
+    dockerfilePath: ./Dockerfile/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false # This will be manually set in Render dashboard 

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lost & Found @ TIP Manila</title>
+<style>
+  :root {
+    --primary: #ffc20e; /* TIP Yellow */
+    --black: #1e1e1e;
+    --white: #ffffff;
+    --gray: #f4f4f4;
+    --text-muted: #555;
+    --accent: #f37021;
+    --radius: 12px;
+  }
+
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: var(--gray);
+    color: var(--black);
+    margin: 0;
+    padding: 0;
+  }
+
+  h1 {
+    background: var(--primary);
+    color: var(--black);
+    text-align: center;
+    padding: 30px 15px;
+    font-size: 2.4rem;
+    margin: 0;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-bottom: 3px solid var(--accent);
+  }
+
+  form {
+    background: var(--white);
+    padding: 30px 25px;
+    border-radius: var(--radius);
+    max-width: 700px;
+    margin: 40px auto;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border-top: 6px solid var(--primary);
+  }
+
+  input, textarea, select {
+    width: 100%;
+    padding: 14px;
+    margin: 12px 0 20px 0;
+    border: 1px solid #ccc;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    background: #fff;
+    transition: border 0.3s ease;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--primary);
+    outline: none;
+  }
+
+  button {
+    background: var(--black);
+    color: var(--white);
+    border: none;
+    padding: 14px 24px;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+  }
+
+  button:hover {
+    background: #333;
+    transform: translateY(-2px);
+  }
+
+  .search-filter {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin: 40px auto 20px;
+    max-width: 700px;
+    padding: 0 15px;
+  }
+
+  .search-filter input, .search-filter select {
+    padding: 12px;
+    border-radius: var(--radius);
+    border: 1px solid #ccc;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .items-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+    padding: 30px;
+    max-width: 1200px;
+    margin: auto;
+  }
+
+  .item-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+  }
+
+  .item-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .item-card strong {
+    font-size: 1.1rem;
+    color: var(--black);
+  }
+
+  .item-card em {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .item-card img {
+    width: 100%;
+    border-radius: 8px;
+    margin-top: 12px;
+    object-fit: cover;
+    max-height: 180px;
+  }
+
+  .item-card button {
+    margin-top: 10px;
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 18px;
+    font-size: 0.95rem;
+  }
+
+  .item-card button:hover {
+    background: #c85617;
+  }
+
+  .claimed {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 6px 12px;
+    background: #e6ffe6;
+    color: green;
+    font-weight: bold;
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 768px) {
+    form, .search-filter {
+      padding: 15px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      padding: 20px;
+    }
+  }
+</style>
+
+
+
+</head>
+<body>
+  <h1>Lost & Found @ TIP Manila</h1>
+
+ <form id="itemForm">
+  <input type="text" id="itemName" name="itemName" placeholder="Item Name" required />
+  <textarea id="description" name="description" placeholder="Description" required></textarea>
+  <input type="date" id="dateLostOrFound" name="dateLostOrFound" required />
+  <select id="status" name="status" required>
+    <option value="">Select Status</option>
+    <option value="lost">Lost</option>
+    <option value="found">Found</option>
+  </select>
+  <input type="text" id="contactInfo" name="contactInfo" placeholder="Your Contact Info" required />
+  <input type="file" id="imageFile" name="image" accept="image/*" />
+  <button type="submit">Submit</button>
+</form>
+
+  <div class="search-filter">
+    <input type="text" id="searchInput" placeholder="Search items...">
+    <select id="filterStatus">
+      <option value="">All</option>
+      <option value="lost">Lost</option>
+      <option value="found">Found</option>
+      <option value="claimed">Claimed</option>
+    </select>
+  </div>
+
+  <div class="items-container" id="itemsContainer"></div>
+
+<script>
+  const API_URL = '/api/items';
+  const form = document.getElementById('itemForm');
+  const itemsContainer = document.getElementById('itemsContainer');
+  const searchInput = document.getElementById('searchInput');
+  const filterStatus = document.getElementById('filterStatus');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Create FormData object directly from the form
+    const formData = new FormData(form);
+    
+    // Log the form data to see what's being sent
+    console.log('Form data being sent:');
+    for (let [key, value] of formData.entries()) {
+      console.log(key + ': ' + value);
+    }
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: formData // Send the FormData object directly
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(JSON.stringify(errorData, null, 2));
+      }
+      
+      alert('Item submitted successfully!');
+      form.reset();
+      loadItems();
+    } catch (err) {
+      console.error('Submission error:', err);
+      alert('Failed to submit item: ' + err.message);
+    }
+  });
+
+  async function loadItems() {
+    try {
+      console.log('Loading items...');
+      const res = await fetch(API_URL);
+      let items = await res.json();
+      console.log('Fetched items:', items);
+
+      // Search and filter
+      const search = searchInput.value.toLowerCase();
+      const status = filterStatus.value;
+      const now = new Date();
+
+      items = items.filter(item => {
+        const date = new Date(item.dateLostOrFound);
+        const valid = (now - date) / (1000 * 60 * 60 * 24) <= 30;
+        return valid &&
+          (!status || item.status === status) &&
+          (!search || item.itemName.toLowerCase().includes(search) || item.description.toLowerCase().includes(search));
+      });
+
+      console.log('Filtered items:', items);
+      itemsContainer.innerHTML = '';
+      
+      if (items.length === 0) {
+        itemsContainer.innerHTML = '<p style="text-align: center; width: 100%; padding: 20px;">No items found. Try adjusting your search or filter.</p>';
+        return;
+      }
+      
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+          <strong>${item.itemName}</strong> (${item.status})<br>
+          ${item.description}<br>
+          <em>${new Date(item.dateLostOrFound).toDateString()}</em><br>
+          Contact: ${item.contactInfo}<br>
+          ${item.imageURL ? `<img src="${item.imageURL}" alt="${item.itemName}" />` : ''}
+          <br>
+          ${item.status !== 'claimed' ? `<button onclick="markClaimed('${item._id}')">Mark as Claimed</button>` : '<span class="claimed">✔ Claimed</span>'}
+        `;
+        itemsContainer.appendChild(card);
+      });
+    } catch (err) {
+      console.error('Error loading items:', err);
+      itemsContainer.innerHTML = 'Failed to load items.';
+    }
+  }
+
+  async function markClaimed(id) {
+    try {
+      console.log('Marking item as claimed:', id);
+      const res = await fetch(`${API_URL}/${id}`, { 
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'claimed' }) 
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to update: ${res.status}`);
+      }
+      
+      console.log('Item marked as claimed successfully');
+      loadItems();
+    } catch (err) {
+      console.error('Error marking item as claimed:', err);
+      alert('Failed to update item status');
+    }
+  }
+
+  searchInput.addEventListener('input', loadItems);
+  filterStatus.addEventListener('change', loadItems);
+  
+  // Make sure loadItems is called when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded, calling loadItems()');
+    loadItems();
+  });
+  
+  // Also call it directly in case DOMContentLoaded already fired
+  loadItems();
+</script>
+</body>
+</html>
