@@ -1,0 +1,250 @@
+{
+  "info": {
+    "name": "Lost & Found API",
+    "_postman_id": "lostandfound-tip-manila",
+    "description": "Full API test collection for the Lost & Found @ TIP Manila application.\n\nWorkflow:\n1. Register or Login to get a token\n2. Token is auto-saved to the `token` collection variable\n3. Use authenticated endpoints freely",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token",    "value": "",                      "type": "string" },
+    { "key": "item_id",  "value": "",                      "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has token', () => pm.expect(pm.response.json()).to.have.property('token'));",
+                  "const token = pm.response.json().token;",
+                  "if (token) pm.collectionVariables.set('token', token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"test1234\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api","auth","register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has token', () => pm.expect(pm.response.json()).to.have.property('token'));",
+                  "const token = pm.response.json().token;",
+                  "if (token) pm.collectionVariables.set('token', token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"test1234\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "Login (wrong password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Status 401', () => pm.response.to.have.status(401));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"wrongpassword\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "Get all items (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/items", "host": ["{{base_url}}"], "path": ["api","items"] }
+          }
+        },
+        {
+          "name": "Get items — filter by status=lost",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('All items are lost', () => {",
+                  "  pm.response.json().forEach(i => pm.expect(i.status).to.eql('lost'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/items?status=lost",
+              "host": ["{{base_url}}"], "path": ["api","items"],
+              "query": [{ "key": "status", "value": "lost" }]
+            }
+          }
+        },
+        {
+          "name": "Post item (authenticated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has _id', () => pm.expect(pm.response.json()).to.have.property('_id'));",
+                  "pm.collectionVariables.set('item_id', pm.response.json()._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "itemName",        "value": "Blue Umbrella",        "type": "text" },
+                { "key": "description",     "value": "Found near the canteen","type": "text" },
+                { "key": "dateLostOrFound", "value": "2024-05-01",           "type": "text" },
+                { "key": "status",          "value": "found",                "type": "text" },
+                { "key": "contactInfo",     "value": "student@tip.edu.ph",   "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/api/items", "host": ["{{base_url}}"], "path": ["api","items"] }
+          }
+        },
+        {
+          "name": "Post item — unauthenticated (expect 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Status 401', () => pm.response.to.have.status(401));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "itemName",        "value": "Wallet",      "type": "text" },
+                { "key": "description",     "value": "Black wallet", "type": "text" },
+                { "key": "dateLostOrFound", "value": "2024-05-01",   "type": "text" },
+                { "key": "status",          "value": "lost",         "type": "text" },
+                { "key": "contactInfo",     "value": "x@tip.edu.ph", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/api/items", "host": ["{{base_url}}"], "path": ["api","items"] }
+          }
+        },
+        {
+          "name": "Post item — invalid status (expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Status 422', () => pm.response.to.have.status(422));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "itemName",        "value": "Keys",          "type": "text" },
+                { "key": "description",     "value": "Car keys",      "type": "text" },
+                { "key": "dateLostOrFound", "value": "2024-05-01",    "type": "text" },
+                { "key": "status",          "value": "stolen",        "type": "text" },
+                { "key": "contactInfo",     "value": "x@tip.edu.ph",  "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/api/items", "host": ["{{base_url}}"], "path": ["api","items"] }
+          }
+        },
+        {
+          "name": "Update item status (authenticated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status updated to claimed', () => pm.expect(pm.response.json().status).to.eql('claimed'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{token}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"status\": \"claimed\" }" },
+            "url": { "raw": "{{base_url}}/api/items/{{item_id}}", "host": ["{{base_url}}"], "path": ["api","items","{{item_id}}"] }
+          }
+        },
+        {
+          "name": "Delete item — non-admin (expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Status 403', () => pm.response.to.have.status(403));"] }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/items/{{item_id}}", "host": ["{{base_url}}"], "path": ["api","items","{{item_id}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}
